@@ -3,6 +3,7 @@ package rxhttp;
 import java.io.IOException;
 
 import io.reactivex.Observable;
+import io.reactivex.Scheduler;
 import io.reactivex.annotations.NonNull;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
@@ -82,7 +83,9 @@ public class HttpSender {
      *
      * @param url 目标url
      * @return Observable<String>
+     * @deprecated 请使用RxHttp.asString方法替代,本方法将在未来的版本删除,请尽快使用新方法
      */
+    @Deprecated
     public static Observable<String> fromGet(@NonNull String url) {
         return from(Param.get(url));
     }
@@ -94,7 +97,9 @@ public class HttpSender {
      *
      * @param param 请求参数
      * @return Observable<String>
+     * @deprecated 请使用RxHttp.asString方法替代,本方法将在未来的版本删除,请尽快使用新方法
      */
+    @Deprecated
     public static Observable<String> from(@NonNull Param param) {
         return from(param, SimpleParser.get(String.class));
     }
@@ -109,7 +114,9 @@ public class HttpSender {
      * @param <T>    要转换的目标数据类型
      * @return Observable<T>
      * @see #download(Param, String) 下载带进度回调
+     * @deprecated 请使用RxHttp.asParser方法替代,本方法将在未来的版本删除,请尽快使用新方法
      */
+    @Deprecated
     public static <T> Observable<T> fromGet(@NonNull String url, @NonNull Parser<T> parser) {
         return from(Param.get(url), parser);
     }
@@ -126,8 +133,10 @@ public class HttpSender {
      * @param <T>    要转换的目标数据类型
      * @return Observable<T>
      * @see #downloadProgress(Param, String) 下载带进度回调
-     * @see #uploadProgress(Param, Parser) 上传带进度回调
+     * @see #uploadProgress(Param) 上传带进度回调
+     * @deprecated 请使用RxHttp.asParser方法替代,本方法将在未来的版本删除,请尽快使用新方法
      */
+    @Deprecated
     public static <T> Observable<T> from(@NonNull Param param, @NonNull Parser<T> parser) {
         return syncFrom(param, parser).subscribeOn(Schedulers.io());
     }
@@ -144,7 +153,7 @@ public class HttpSender {
      * @param <T>    要转换的目标数据类型
      * @return Observable<T>
      * @see #downloadProgress(Param, String) 下载带进度回调
-     * @see #uploadProgress(Param, Parser) 上传带进度回调
+     * @see #uploadProgress(Param) 上传带进度回调
      */
     public static <T> Observable<T> syncFrom(@NonNull Param param, @NonNull Parser<T> parser) {
         return new ObservableHttp<>(param, parser);
@@ -156,7 +165,9 @@ public class HttpSender {
      * @param param    请求参数
      * @param destPath 目标路径
      * @return Observable<Progress>
+     * @deprecated 请使用RxHttp.asDownload方法替代,本方法将在未来的版本删除,请尽快使用新方法
      */
+    @Deprecated
     public static Observable<String> download(@NonNull Param param, final String destPath) {
         return from(param, new DownloadParser(destPath));
     }
@@ -167,9 +178,27 @@ public class HttpSender {
      * @param param    请求参数
      * @param destPath 目标路径
      * @return Observable<Progress>
+     *
+     * @deprecated 请使用RxHttp.asDownloadProgress方法替代,本方法将在未来的版本删除,请尽快使用新方法
      */
+    @Deprecated
     public static Observable<Progress<String>> downloadProgress(@NonNull Param param, final String destPath) {
-        return new ObservableDownload(param, destPath).subscribeOn(Schedulers.io());
+        return downloadProgress(param, destPath, 0, Schedulers.io());
+    }
+
+    /**
+     * 异步文件下载，带进度回调
+     *
+     * @param param    请求参数
+     * @param destPath 目标路径
+     * @param offsetSize 断点下载时,进度偏移量,仅断点下载时有效
+     * @return Observable<Progress>
+     */
+    public static Observable<Progress<String>> downloadProgress(@NonNull Param param, final String destPath, long offsetSize, Scheduler scheduler) {
+        ObservableDownload observableDownload = new ObservableDownload(param, destPath, offsetSize);
+        if (scheduler != null)
+            return observableDownload.subscribeOn(scheduler);
+        return observableDownload;
     }
 
     /**
@@ -178,9 +207,11 @@ public class HttpSender {
      *
      * @param param 请求参数，必须要重写{@link Param#setProgressCallback(ProgressCallback)}方法
      * @return Observable<Progress   <   String>>
+     * @deprecated 请使用RxHttp.asUploadProgress方法替代,本方法将在未来的版本删除,请尽快使用新方法
      */
+    @Deprecated
     public static Observable<Progress<String>> uploadProgress(@NonNull Param param) {
-        return uploadProgress(param, SimpleParser.get(String.class));
+        return uploadProgress(param, SimpleParser.get(String.class), Schedulers.io());
     }
 
     /**
@@ -192,7 +223,10 @@ public class HttpSender {
      * @param <T>    要转换的目标数据类型
      * @return Observable<Progress>
      */
-    public static <T> Observable<Progress<T>> uploadProgress(@NonNull Param param, @NonNull Parser<T> parser) {
-        return new ObservableUpload<>(param, parser).subscribeOn(Schedulers.io());
+    public static <T> Observable<Progress<T>> uploadProgress(@NonNull Param param, @NonNull Parser<T> parser, Scheduler scheduler) {
+        ObservableUpload<T> observableUpload = new ObservableUpload<>(param, parser);
+        if (scheduler != null)
+            return observableUpload.subscribeOn(scheduler);
+        return observableUpload;
     }
 }
